@@ -198,6 +198,86 @@
   font-weight: 500;
 }
 
+.places-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f4;
+}
+
+.places-section h4 {
+  margin: 0 0 10px;
+  color: #39465b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.places-empty,
+.places-error {
+  margin: 0;
+  color: #687386;
+  font-size: 13px;
+}
+
+.places-error {
+  color: #a32929;
+}
+
+.places-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 19px;
+  color: #4c586c;
+  font-size: 14px;
+}
+
+.place-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.place-form input {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #d7dde6;
+  border-radius: 7px;
+  color: #202a3b;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.place-form input:focus {
+  outline: 2px solid #a8c9f2;
+  outline-offset: 1px;
+  border-color: #6e9fd8;
+}
+
+.add-place-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #cbd8e8;
+  border-radius: 7px;
+  color: #285fa7;
+  background: #f4f8fd;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-place-button:hover:not(:disabled) {
+  background: #e8f1fc;
+}
+
+.add-place-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 @media (max-width: 600px) {
   .page {
     width: min(100% - 32px, 900px);

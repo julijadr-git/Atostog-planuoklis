@@ -36,6 +36,10 @@ function App() {
   const [trips, setTrips] = useState([])
   const [tripsState, setTripsState] = useState('loading')
   const [tripsError, setTripsError] = useState('')
+  const [placesError, setPlacesError] = useState('')
+  const [placeInputs, setPlaceInputs] = useState({})
+  const [placeSaving, setPlaceSaving] = useState({})
+  const [placeSaveErrors, setPlaceSaveErrors] = useState({})
   const [tripForm, setTripForm] = useState({
     name: '',
     country: '',
@@ -115,10 +119,11 @@ function App() {
   async function loadTrips(userId, isActive = () => true) {
     setTripsState('loading')
     setTripsError('')
+    setPlacesError('')
 
     const { data, error } = await supabase
       .from('trips')
-      .select('id, name, country, start_date, end_date')
+      .select('id, name, country, start_date, end_date, places(id, name)')
       .eq('user_id', userId)
       .order('start_date', { ascending: true })
 
@@ -130,8 +135,48 @@ function App() {
       return
     }
 
-    setTrips(data ?? [])
+    const tripsWithPlaces = (data ?? []).map((trip) => {
+      if (Array.isArray(trip.places)) return trip
+
+      setPlacesError('Lankytinų vietų nepavyko nuskaityti. Patikrinkite lentelių ryšį ir RLS taisykles.')
+      return { ...trip, places: [] }
+    })
+
+    setTrips(tripsWithPlaces)
     setTripsState('loaded')
+  }
+
+  async function handlePlaceSubmit(event, trip) {
+    event.preventDefault()
+    const name = (placeInputs[trip.id] ?? '').trim()
+    if (!name || placeSaving[trip.id]) return
+
+    setPlaceSaving((current) => ({ ...current, [trip.id]: true }))
+    setPlaceSaveErrors((current) => ({ ...current, [trip.id]: '' }))
+
+    try {
+      const { data, error } = await supabase
+        .from('places')
+        .insert({ name, trip_id: trip.id })
+        .select('id, name')
+        .single()
+
+      if (error) throw error
+
+      setTrips((currentTrips) => currentTrips.map((currentTrip) => (
+        currentTrip.id === trip.id
+          ? { ...currentTrip, places: [...currentTrip.places, data] }
+          : currentTrip
+      )))
+      setPlaceInputs((current) => ({ ...current, [trip.id]: '' }))
+    } catch (error) {
+      setPlaceSaveErrors((current) => ({
+        ...current,
+        [trip.id]: error.message || 'Nepavyko pridėti lankytinos vietos. Bandykite dar kartą.',
+      }))
+    } finally {
+      setPlaceSaving((current) => ({ ...current, [trip.id]: false }))
+    }
   }
 
   if (connectionState === 'loading') {
@@ -233,6 +278,49 @@ function App() {
                 <p className="trip-dates">
                   {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
                 </p>
+                <section className="places-section" aria-label={`Kelionės „${trip.name}“ lankytinos vietos`}>
+                  <h4>Lankytinos vietos</h4>
+                  {placesError && (
+                    <p className="places-error" role="alert">{placesError}</p>
+                  )}
+                  {!placesError && trip.places.length === 0 && (
+                    <p className="places-empty">Lankytinų vietų dar nėra</p>
+                  )}
+                  {!placesError && trip.places.length > 0 && (
+                    <ul className="places-list">
+                      {trip.places.map((place) => (
+                        <li key={place.id}>{place.name}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <form
+                    className="place-form"
+                    onSubmit={(event) => handlePlaceSubmit(event, trip)}
+                  >
+                    <input
+                      type="text"
+                      value={placeInputs[trip.id] ?? ''}
+                      onChange={(event) => {
+                        const { value } = event.target
+                        setPlaceInputs((current) => ({ ...current, [trip.id]: value }))
+                        setPlaceSaveErrors((current) => ({ ...current, [trip.id]: '' }))
+                      }}
+                      placeholder="Vietos pavadinimas"
+                      aria-label={`Vietos pavadinimas kelionei ${trip.name}`}
+                      required
+                    />
+                    <button
+                      className="add-place-button"
+                      type="submit"
+                      disabled={placeSaving[trip.id] || !(placeInputs[trip.id] ?? '').trim()}
+                    >
+                      {placeSaving[trip.id] ? 'Pridedama...' : 'Pridėti'}
+                    </button>
+                  </form>
+                  {placeSaveErrors[trip.id] && (
+                    <p className="places-error" role="alert">{placeSaveErrors[trip.id]}</p>
+                  )}
+                </section>
               </article>
             ))}
           </div>
